@@ -1,0 +1,85 @@
+clear all
+clc
+
+%% Dataset organization
+
+addpath('../Datasets')
+dataset_name = '7days_50x50_00';
+load(dataset_name);
+num_intervals = 1; % numbers of previous images used to predict
+window_size = size(cellInput{1},1);
+temp_set = [];
+
+% % TEST ARRAY cellInput = cell(1, 672);
+% for i = 1:1:672
+%     cellInput{i} = i;
+% end
+
+% Training Images dataset
+cloudsTrain = [];
+for i = 1:1:(size(cellInput,2) - num_intervals)
+    
+    for k = 0:1:(num_intervals - 1)
+       
+        temp_set = cat(3,temp_set,cellInput{i+k});
+        
+    end
+    
+    cloudsTrain = cat(4,cloudsTrain,temp_set);
+    temp_set = [];
+    
+end
+
+% Training Images targets
+cloudsTarget = [];
+for i = (num_intervals + 1):1:size(cellInput,2)
+   
+    cloudsTarget = cat(1,cloudsTarget,cellInput{i}(window_size/2,window_size/2));
+        
+end
+
+
+%% CNN designer
+
+img_width = size(cloudsTarget{1},1);
+img_height = size(cloudsTarget{1},2);
+
+% layers = [imageInputLayer([img_width img_height 1])
+%           convolution2dLayer(5,30)
+%           reluLayer
+%           maxPooling2dLayer(2,'Stride',2)
+%           fullyConnectedLayer(img_width * img_height)];
+      
+      
+T = table(cloudsTrainImages,cloudsTarget);
+%% CNN Training
+
+% layers = [imageInputLayer([50 50 1])
+%           convolution2dLayer(5,20)
+%           reluLayer
+%           maxPooling2dLayer(2,'Stride',2)
+%           fullyConnectedLayer(1)
+%           regressionLayer()];
+
+layers = [ ...
+    imageInputLayer([50 50 1])
+    convolution2dLayer(12,25)
+    reluLayer
+    fullyConnectedLayer(1)
+    regressionLayer];
+
+options = trainingOptions('sgdm','InitialLearnRate',0.001, ...
+    'MaxEpochs',15);
+
+% options = trainingOptions('sgdm',...
+%       'InitialLearnRate',0.001, ...
+%       'MaxEpochs',1000, ...
+%       'MiniBatchSize',300,...
+%       'OutputFcn',@plotTrainingAccuracy);
+  
+trainedNet = trainNetwork(cloudsTrain, cloudsTarget,layers,options);
+
+
+
+
+

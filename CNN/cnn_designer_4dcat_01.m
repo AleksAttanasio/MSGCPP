@@ -6,6 +6,7 @@ clc
 addpath('../Datasets')
 dataset_name = '7days_50x50_00';
 load(dataset_name);
+num_intervals = 10;
 
 % % TEST ARRAY
 % cellInput = cell(1, 672);
@@ -17,30 +18,22 @@ load(dataset_name);
 % end
 
 % Training Images dataset
-num_intervals = 1; % numbers of previous images used to predict
-cloudsTrainImages = cell(num_intervals,(size(cellInput,2)- num_intervals));
-start_index = 1;
-inner_index = 0;
-
-for i = 1:1:size(cloudsTrainImages,2)
+cloudsTrain = cellInput{1};
+for i = 2:1:size(cellInput,2)
     
-   for k = start_index:1:(num_intervals + start_index - 1)       
-       inner_index = inner_index + 1;
-       cloudsTrainImages{inner_index,i} = cellInput{k};
-   end
-   
-   inner_index = 0;
-   start_index = start_index + 1;   
+   cloudsTrain = cat(4,cloudsTrain,cellInput{i});
+    
 end
-
 % Training Images targets
-cloudsTarget = cell(1,(size(cellInput,2)- num_intervals));
+% cloudsTarget = cell(1,(size(cellInput,2)- num_intervals));
+cloudsTarget = cellInput{num_intervals};
 
-for i =  1:1:size(cloudsTrainImages,2)
-    
-    cloudsTarget{i} = cellInput{i + num_intervals}; 
-    
+for i = (num_intervals + 1):1:size(cellInput,2)
+   
+    cloudsTarget = cat(4,cloudsTarget,cellInput{i});
+        
 end
+
 
 %% CNN designer
 
@@ -62,8 +55,7 @@ layers = [imageInputLayer([28 28 1])
           reluLayer
           maxPooling2dLayer(2,'Stride',2)
           fullyConnectedLayer(10)
-          softmaxLayer
-          classificationLayer];
+          regressionLayer()];
       
 options = trainingOptions('sgdm',...
       'LearnRateSchedule','piecewise',...
@@ -71,7 +63,7 @@ options = trainingOptions('sgdm',...
       'LearnRateDropPeriod',5,... 
       'MaxEpochs',1000);
   
-trainedNet = trainNetwork(T,layers,options);
+trainedNet = trainNetwork(cloudsTrain, cloudsTarget,layers,options);
 
 
 
